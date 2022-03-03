@@ -17,10 +17,6 @@ SIM_CONFIG_NAME_f = lambda model_fp: model_fp.replace(".fmu", "_conf.yaml")
 # ("1.0", "2.0", "3.0")
 FMI_VERSION = "2.0"
 
-START_TIME = 0.0
-STOP_TIME = 20.0
-STEP_SIZE = 0.1
-
 
 class FMUSimValidation:
     def __init__(
@@ -355,9 +351,9 @@ class FMUConnector:
         self,
         model_filepath: str,
         fmi_version: str = FMI_VERSION,
-        start_time = START_TIME,
-        stop_time = STOP_TIME,
-        step_size = STEP_SIZE,
+        start_time = 0.0,
+        stop_time = sys.float_info.max, # Default stop time to max float. Run simulation episode as long as it is needed.
+        step_size = 1.0, # Default step size to one time unit.
         user_validation: bool = False,
         use_unzipped_model: bool = False,
     ):
