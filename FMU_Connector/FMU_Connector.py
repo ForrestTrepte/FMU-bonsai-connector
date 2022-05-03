@@ -9,6 +9,11 @@ import json
 
 from typing import Any, Dict, List, Union
 
+log_fmu_ops = True
+
+def log_fmu(message:str):
+    if log_fmu_ops:
+        print(f"* {message}")
 
 SIM_CONFIG_NAME_f = lambda model_fp: model_fp.replace(".fmu", "_conf.yaml")
 
@@ -98,6 +103,8 @@ class FMUSimValidation:
         
         # exit if model is valid, unless validation has been activated
         if valid_config:
+
+            print(f"* valid_config: user_validation = {user_validation}")
 
             # print model config for user reference: config_params, inputs, outputs
             print(self._get_sim_config_str())
@@ -617,15 +624,20 @@ class FMUConnector:
         self._is_initialized = True
 
         if (self._is_instantiated is False):
+            log_fmu(f"instantiate()")
             self.fmu.instantiate()
             self._is_instantiated = True
         else:
+            log_fmu(f"reset()")
             self.fmu.reset()
-            
+
+        log_fmu(f"setupExperiment(startTime={self.start_time})")
         self.fmu.setupExperiment(startTime=self.start_time)
         if config_param_vals is not None:
             self._apply_config(config_param_vals)
+        log_fmu(f"enterInitializationMode()")
         self.fmu.enterInitializationMode()
+        log_fmu(f"exitInitializationMode()")
         self.fmu.exitInitializationMode()
 
         return
@@ -645,6 +657,7 @@ class FMUConnector:
             print(error_log)
             return
 
+        log_fmu(f"doStep(currentCommunicationPoint={self.sim_time}, communicationStepSize={self.step_size})")
         self.fmu.doStep(currentCommunicationPoint=self.sim_time, communicationStepSize=self.step_size)
         self.sim_time += self.step_size
         return
@@ -686,6 +699,7 @@ class FMUConnector:
 
         # free fmu
         if (self._is_instantiated is True):
+            log_fmu(f"freeInstance()")
             self.fmu.freeInstance()
             self._is_instantiated = False
             
@@ -836,6 +850,7 @@ class FMUConnector:
             #print("[_get_variables] No valid var names have been provided. No vars are returned.")
             return {}
         
+        log_fmu(f"getReal({sim_output_indices})")
         outputs_dict = dict(zip(sim_output_names, self.fmu.getReal(sim_output_indices)))
 
         return outputs_dict
@@ -873,6 +888,7 @@ class FMUConnector:
             sim_input_vals.append(sim_input_casted)
 
         # Update inputs to the brain
+        log_fmu(f"setReal({sim_input_indices}, {sim_input_vals})")
         self.fmu.setReal(sim_input_indices, sim_input_vals)
 
         return True
@@ -932,6 +948,7 @@ class FMUConnector:
             return
         
         # Terminate instance
+        log_fmu(f"fmu.terminate()")
         self.fmu.terminate()
         self._is_initialized = False
         self._is_instantiated = False
