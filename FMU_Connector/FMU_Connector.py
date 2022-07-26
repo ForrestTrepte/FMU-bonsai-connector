@@ -619,8 +619,9 @@ class FMUConnector:
         if (self._is_instantiated is False):
             self.fmu.instantiate()
             self._is_instantiated = True
-
-        self.fmu.reset()
+        else:
+            self.fmu.reset()
+            
         self.fmu.setupExperiment(startTime=self.start_time)
         if config_param_vals is not None:
             self._apply_config(config_param_vals)
