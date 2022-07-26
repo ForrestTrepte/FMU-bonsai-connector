@@ -104,8 +104,6 @@ class FMUSimValidation:
         # exit if model is valid, unless validation has been activated
         if valid_config:
 
-            print(f"* valid_config: user_validation = {user_validation}")
-
             # print model config for user reference: config_params, inputs, outputs
             print(self._get_sim_config_str())
 
