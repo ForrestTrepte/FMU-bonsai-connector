@@ -40,6 +40,9 @@ class FMUSimValidation:
               file is read. If FMI model description is also invalid, error is raised.
         """
 
+        # print_logger = lambda s: print('[FMI] ' + s)
+        # simulate_fmu(filename = model_filepath, stop_time=2.0, step_size=1.0, debug_logging=True, fmi_call_logger=print_logger)
+
         # ensure model filepath is balid, and save as att if it is
         assert model_filepath.endswith(".fmu"), "Provided filepath is not an FMU file: '{}'".format(model_filepath)
         self.model_filepath = model_filepath
@@ -670,7 +673,7 @@ class FMUConnector:
         self._model_has_been_initialized("reset")
 
         # Terminate and re-initialize
-        self._terminate_model()
+        # self._terminate_model()
         self.initialize_model(config_param_vals)
         
         # Reset time
