@@ -199,6 +199,7 @@ class FMUSimValidation:
         sim_config_params = simulation_config['simulation']['config_params']
         sim_inputs = simulation_config['simulation']['inputs']
         sim_outputs = simulation_config['simulation']['outputs']
+        sim_outputs.remove('missionPhase')
         sim_other_vars = simulation_config['simulation']['other_vars']
 
         # Validate values extracted
@@ -655,8 +656,8 @@ class FMUConnector:
             print(error_log)
             return
 
-        log_fmu(f"doStep(currentCommunicationPoint={self.sim_time}, communicationStepSize={self.step_size})")
-        self.fmu.doStep(currentCommunicationPoint=self.sim_time, communicationStepSize=self.step_size)
+        log_fmu(f"doStep(currentCommunicationPoint={self.sim_time}, communicationStepSize={self.step_size}, noSetFMUStatePriorToCurrentPoint=1)")
+        self.fmu.doStep(currentCommunicationPoint=self.sim_time, communicationStepSize=self.step_size, noSetFMUStatePriorToCurrentPoint=1)
         self.sim_time += self.step_size
         return
 
@@ -780,10 +781,10 @@ class FMUConnector:
 
         # Append all variables in model (defined in YAML).
         aux_all_var_names = []
-        aux_all_var_names.extend(self.sim_config_params)
-        aux_all_var_names.extend(self.sim_inputs)
+        # aux_all_var_names.extend(self.sim_config_params)
+        # aux_all_var_names.extend(self.sim_inputs)
         aux_all_var_names.extend(self.sim_outputs)
-        aux_all_var_names.extend(self.sim_other_vars)
+        # aux_all_var_names.extend(self.sim_other_vars)
 
         # Remove duplicates (if any) -- Keeping initial order
         all_var_names = [aux_all_var_names[i] for i in range(len(aux_all_var_names)) \
@@ -839,8 +840,6 @@ class FMUConnector:
         elif not len(sim_outputs) > 0:
             #print("[_get_variables] No var names were provided. No vars are returned.")
             return {}
-
-
         sim_output_indices, sim_output_names = self._var_names_to_indices(sim_outputs)
         
         # Check if more than one index has been found
@@ -886,8 +885,8 @@ class FMUConnector:
             sim_input_vals.append(sim_input_casted)
 
         # Update inputs to the brain
-        log_fmu(f"setReal({sim_input_indices}, {sim_input_vals})")
-        self.fmu.setReal(sim_input_indices, sim_input_vals)
+        # log_fmu(f"setReal({sim_input_indices}, {sim_input_vals})")
+        # self.fmu.setReal(sim_input_indices, sim_input_vals)
 
         return True
 
