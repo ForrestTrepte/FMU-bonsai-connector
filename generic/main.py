@@ -64,8 +64,7 @@ class FMUSimulatorSession:
                                       user_validation = False)
         self.env_name = f"{self.simulator.model_description.modelName} FMU"
 
-        # initialize model - required!
-        self.simulator.initialize_model()
+        self.simulator.initialize_model(fmi_logging_enabled = True)
 
         self._reset({})
         self.terminal = False

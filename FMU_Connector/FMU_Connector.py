@@ -3,6 +3,9 @@ import os
 from datetime import datetime
 import shutil
 from fmpy import *
+#from fmpy.fmi2 import defaultCallbacks
+import fmpy
+import fmpy.fmi2
 import yaml
 import re
 import json
@@ -16,6 +19,22 @@ SIM_CONFIG_NAME_f = lambda model_fp: model_fp.replace(".fmu", "_conf.yaml")
 # ("1.0", "2.0", "3.0")
 FMI_VERSION = "2.0"
 
+def logFMICall(component, instanceName, status, category, message):
+    """ Print the FMU's log messages to the command line (works for both FMI 1.0 and 2.0) """
+
+    label = ['OK', 'WARNING', 'DISCARD', 'ERROR', 'FATAL', 'PENDING'][status]
+    print("[%s] %s" % (label, message.decode("utf-8")))
+
+# def logFMICall(self, message):
+#     print(f' FMU: {message}', flush=True)
+
+defaultCallbacks = fmi2.fmi2CallbackFunctions()
+defaultCallbacks.logger = fmi2.fmi2CallbackLoggerTYPE(fmi2.printLogMessage)
+defaultCallbacks.allocateMemory = fmi2.fmi2CallbackAllocateMemoryTYPE(calloc)
+defaultCallbacks.freeMemory = fmi2.fmi2CallbackFreeMemoryTYPE(free)
+
+loggingEnabledCallbacks = defaultCallbacks
+loggingEnabledCallbacks.logger = fmi2.fmi2CallbackLoggerTYPE(logFMICall)
 
 class FMUSimValidation:
     def __init__(
@@ -635,14 +654,13 @@ class FMUConnector:
         # ---------------------------------------------------------------
         return
 
-
-    def initialize_model(self, config_param_vals = None):
+    def initialize_model(self, fmi_logging_enabled: bool, config_param_vals = None):
         """Initialize model in the sequential manner required.
         """
         self._is_initialized = True
 
         if (self._is_instantiated is False):
-            self.fmu.instantiate()
+            self.fmu.instantiate(callbacks = loggingEnabledCallbacks if fmi_logging_enabled else defaultCallbacks)
             self._is_instantiated = True
         else:
             self.fmu.reset()
