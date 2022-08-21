@@ -331,10 +331,22 @@ class FMUSimValidation:
                                     "comment": "Reserved FMU variable: Enable logging of each FMU API call to the console output. Set to 1 to enable logging."
                                     }
                                 })
+        sim_config_list.append({"name": "FMUMEM_X",
+                                "type": {
+                                    "category": "Number",
+                                    "comment": "Reserved FMU variables: Variables named FMUMEM_* set in the config are saved and returned with the FMU state. This can be used to set arbitrary values in the config and use them as brain inputs or in goals."
+                                    }
+                                })
         sim_action_list.append({"name": "FMU_step_size",
                                 "type": {
                                     "category": "Number",
                                     "comment": "Reserved FMU variable: If set, overrides the default simulation step size. Each Bonsai iteration will step the FMU simulation forward by this amount of time. When this is set using an action, it overrides config settings and can be used to take variable sized time steps dynamically controlled by the brain."
+                                    }
+                                })
+        sim_action_list.append({"name": "FMUMEM_X",
+                                "type": {
+                                    "category": "Number",
+                                    "comment": "Reserved FMU variables: Variables named FMUMEM_* set by an action are saved and returned with the FMU state. This can be used to set arbitrary values in brain actions and use them as brain inputs or in goals. For example, this can be used in a programmed concept to create a memory that persists in future iterations."
                                     }
                                 })
         sim_state_list.append({"name": "FMU_time",
@@ -343,7 +355,13 @@ class FMUSimValidation:
                                     "comment": "Reserved FMU variable: Current simulation time. This is the time at the end of the last simulation step."
                                     }
                                 })
-     
+        sim_state_list.append({"name": "FMUMEM_X",
+                                "type": {
+                                    "category": "Number",
+                                    "comment": "Reserved FMU variables: Variables named FMUMEM_* that have been previously set by a config or action."
+                                    }
+                                })
+
         interface_dict = {"name": self.model_description.modelName,
                           "timeout":60,
                           "description": {
@@ -361,8 +379,7 @@ class FMUSimValidation:
                                 }
                             }
                          }
-                            
-        
+
         # Dump configuration to YAML file for later reuse (or user editing if "is_aux_yaml==True")
         interface_file = os.path.join(os.getcwd(),"interface.json")
         print(str(interface_file))
@@ -664,6 +681,7 @@ class FMUConnector:
         self.fmu.fmiCallLogger = fmi_call_logger if self.episode_fmi_logging else None
 
         self.fmu.setupExperiment(startTime=self.start_time)
+        self.memory = {}
         if config_param_vals is not None:
             self._apply_config(config_param_vals)
         self.fmu.enterInitializationMode()
@@ -778,6 +796,9 @@ class FMUConnector:
         # dynamically varied.
         states_dict['FMU_time'] = self.sim_time
 
+        # Add memory values to the state.
+        states_dict.update(self.memory)
+
         # Check if more than one index has been found
         if not len(states_dict.keys()) > 0:
             print("[get_states] No valid state names have been provided. No states are returned.")
@@ -800,7 +821,10 @@ class FMUConnector:
         if not len(b_action_vals.items()) > 0:
             print("[apply_actions] Provided action dict is empty. No action changes will be applied.")
             return False
-        
+
+        # Handle reserved memory parameters
+        self._process_memory(b_action_vals)
+
         # The brain can specify a dynamically-adapting time step size by setting the value of
         # 'FMU_step_size' in an action variable. An example of how this would be used would
         # be for the brain to take longer time steps during "cruising" periods when high-frequency
@@ -858,6 +882,18 @@ class FMUConnector:
         return self.all_var_names
 
 
+    def _process_memory(self, config_or_action_dictionary: Dict[str, Any]):
+        # Remove keys beginning with 'FMUMEM_' from config_or_action_dictionary
+        # and assign them to the memory dictionary.
+        to_remove = []
+        for key, value in config_or_action_dictionary.items():
+            if key.startswith('FMUMEM_'):
+                self.memory[key] = value
+                to_remove.append(key)
+        for key in to_remove:
+            del config_or_action_dictionary[key]
+
+
     def _apply_config(self, config_param_vals: Dict[str, Any] = {}):
         """Apply configuration paramaters.
         """
@@ -866,7 +902,10 @@ class FMUConnector:
         if not len(config_param_vals.items()) > 0:
             print("[_apply_config] Config params was provided empty. No changes applied.")
             return False
-        
+
+        # Handle reserved memory parameters
+        self._process_memory(config_param_vals)
+
         # We forward the configuration values provided
         applied_config_bool = self._set_variables(config_param_vals)
             
