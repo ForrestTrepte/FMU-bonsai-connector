@@ -837,6 +837,12 @@ class FMUConnector:
         # We forward the configuration values provided
         applied_actions_bool = self._set_variables(b_action_vals)
 
+        # Remove all keys from b_action_vals that begin with 'FMU_'. This is to avoid
+        # setting those keys as variables in the FMU.
+        for key in list(b_action_vals.keys()):
+            if key.startswith('FMU_'):
+                del b_action_vals[key]
+
         if not applied_actions_bool:
             print("[apply_actions] No valid action parameters were found. No actions applied.")
 
