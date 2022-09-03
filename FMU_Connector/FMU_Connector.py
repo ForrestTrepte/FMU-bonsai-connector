@@ -313,6 +313,12 @@ class FMUSimValidation:
 
         # Add the special hardcoded FMU-specific variables that we make available
         # for all models
+        sim_config_list.append({"name": "FMU_timeout",
+                                "type": {
+                                    "category": "Number",
+                                    "comment": "Timeout in seconds. If the FMU does not respond within this time, the simulation will be terminated."
+                                    }
+                                })
         sim_config_list.append({"name": "FMU_step_size",
                                 "type": {
                                     "category": "Number",

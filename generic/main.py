@@ -277,9 +277,10 @@ def main(config_setup: bool, fmi_logging: bool):
         interface = json.load(file)
 
     # Create simulator session and init sequence id
+    default_timeout = interface["timeout"]
     registration_info = SimulatorInterface(
         name=sim.env_name,
-        timeout=60,
+        timeout=default_timeout,
         simulator_context=config_client.simulator_context,
         description=interface['description']
     )
@@ -308,7 +309,16 @@ def main(config_setup: bool, fmi_logging: bool):
                 time.sleep(event.idle.callback_time)
                 print("Idling...")
             elif event.type == "EpisodeStart":
-                sim.episode_start(event.episode_start.config)
+                episode_timeout = event.episode_start.config.get("FMU_timeout", default_timeout)
+                if episode_timeout == registration_info.timeout:
+                    sim.episode_start(event.episode_start.config)
+                else:
+                    print(f"Unregistering simulator session unregistered by because episode config is changing timeout from {registration_info.timeout} to {episode_timeout}.")
+                    client.session.delete(workspace_name=config_client.workspace, session_id=registered_session.session_id)
+                    registration_info.timeout = episode_timeout
+                    registered_session = client.session.create(workspace_name=config_client.workspace, body=registration_info)
+                    print("Registered simulator.")
+                    sequence_id = 1
             elif event.type == "EpisodeStep":
                 sim.episode_step(event.episode_step.action)
             elif event.type == "EpisodeFinish":
